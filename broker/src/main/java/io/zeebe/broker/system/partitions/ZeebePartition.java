@@ -607,6 +607,8 @@ public final class ZeebePartition extends Actor
   protected void onActorStarted() {
     criticalComponentsHealthMonitor.startMonitoring();
     criticalComponentsHealthMonitor.addFailureListener(this);
+    criticalComponentsHealthMonitor.registerComponent(
+        "Raft-" + partitionId, new RaftPartitionHealth(atomixRaftPartition));
   }
 
   @Override
