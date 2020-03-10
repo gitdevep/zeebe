@@ -196,7 +196,7 @@ public abstract class AbstractCatchEventBuilder<
   public B zeebeInput(final String source, final String target) {
     final ZeebeIoMapping ioMapping = getCreateSingleExtensionElement(ZeebeIoMapping.class);
     final ZeebeInput input = createChild(ioMapping, ZeebeInput.class);
-    input.setSource(source);
+    input.setSource(asZeebeExpression(source));
     input.setTarget(target);
 
     return myself;
@@ -206,7 +206,7 @@ public abstract class AbstractCatchEventBuilder<
   public B zeebeOutput(final String source, final String target) {
     final ZeebeIoMapping ioMapping = getCreateSingleExtensionElement(ZeebeIoMapping.class);
     final ZeebeOutput input = createChild(ioMapping, ZeebeOutput.class);
-    input.setSource(source);
+    input.setSource(asZeebeExpression(source));
     input.setTarget(target);
 
     return myself;

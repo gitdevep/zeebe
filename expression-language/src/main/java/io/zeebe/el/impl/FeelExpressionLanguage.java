@@ -14,6 +14,7 @@ import io.zeebe.el.EvaluationResult;
 import io.zeebe.el.Expression;
 import io.zeebe.el.ExpressionLanguage;
 import io.zeebe.el.impl.feel.FeelEvaluationResult;
+import io.zeebe.el.impl.feel.FeelFunctionProvider;
 import io.zeebe.el.impl.feel.FeelToMessagePackTransformer;
 import io.zeebe.el.impl.feel.FeelVariableContext;
 import io.zeebe.el.impl.feel.MessagePackValueMapper;
@@ -37,7 +38,10 @@ public final class FeelExpressionLanguage implements ExpressionLanguage {
   private static final Pattern STATIC_VALUE_PATTERN = Pattern.compile("[a-zA-Z][a-zA-Z0-9_\\-]*");
 
   private final FeelEngine feelEngine =
-      new FeelEngine.Builder().customValueMapper(new MessagePackValueMapper()).build();
+      new FeelEngine.Builder()
+          .customValueMapper(new MessagePackValueMapper())
+          .functionProvider(new FeelFunctionProvider())
+          .build();
 
   private final FeelToMessagePackTransformer messagePackTransformer =
       new FeelToMessagePackTransformer();

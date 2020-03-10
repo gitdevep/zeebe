@@ -17,7 +17,6 @@ import io.zeebe.el.ResultType;
 import io.zeebe.engine.state.instance.VariablesState;
 import io.zeebe.protocol.record.value.ErrorType;
 import java.util.Optional;
-import java.util.function.Function;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 
@@ -46,7 +45,11 @@ public final class ExpressionProcessor {
   public Optional<DirectBuffer> evaluateStringExpression(
       final Expression expression, final BpmnStepContext<?> context) {
 
-    return evaluateExpression(expression, context, ResultType.STRING, EvaluationResult::getString)
+    final var evaluationResult = evaluateExpression(expression, context.getKey());
+    return failureCheck(evaluationResult, ErrorType.EXTRACT_VALUE_ERROR, context)
+        .flatMap(
+            result -> typeCheck(result, ResultType.STRING, ErrorType.EXTRACT_VALUE_ERROR, context))
+        .map(EvaluationResult::getString)
         .map(this::wrapResult);
   }
 
@@ -61,33 +64,60 @@ public final class ExpressionProcessor {
   public Optional<Boolean> evaluateBooleanExpression(
       final Expression expression, final BpmnStepContext<?> context) {
 
-    return evaluateExpression(
-        expression, context, ResultType.BOOLEAN, EvaluationResult::getBoolean);
+    final var evaluationResult = evaluateExpression(expression, context.getKey());
+    return failureCheck(evaluationResult, ErrorType.EXTRACT_VALUE_ERROR, context)
+        .flatMap(
+            result -> typeCheck(result, ResultType.BOOLEAN, ErrorType.EXTRACT_VALUE_ERROR, context))
+        .map(EvaluationResult::getBoolean);
   }
 
-  private <T> Optional<T> evaluateExpression(
-      final Expression expression,
-      final BpmnStepContext<?> context,
-      final ResultType expectedResultType,
-      final Function<EvaluationResult, T> resultExtractor) {
+  /**
+   * Evaluates the given expression of a variable mapping and returns the result as buffer. If the
+   * evaluation fails or the result is not a context then an incident is raised.
+   *
+   * @param expression the expression to evaluate
+   * @param context the element context to load the variables from
+   * @return the evaluation result as buffer, or {@link Optional#empty()} if an incident is raised
+   */
+  public Optional<DirectBuffer> evaluateVariableMappingExpression(
+      final Expression expression, final BpmnStepContext<?> context) {
 
     final var evaluationResult = evaluateExpression(expression, context.getKey());
+    return failureCheck(evaluationResult, ErrorType.IO_MAPPING_ERROR, context)
+        .flatMap(
+            result -> typeCheck(result, ResultType.OBJECT, ErrorType.IO_MAPPING_ERROR, context))
+        .map(EvaluationResult::toBuffer);
+  }
 
-    if (evaluationResult.isFailure()) {
-      context.raiseIncident(ErrorType.EXTRACT_VALUE_ERROR, evaluationResult.getFailureMessage());
+  private Optional<EvaluationResult> failureCheck(
+      final EvaluationResult result, final ErrorType errorType, final BpmnStepContext<?> context) {
+
+    if (result.isFailure()) {
+      context.raiseIncident(errorType, result.getFailureMessage());
       return Optional.empty();
-    }
 
-    if (evaluationResult.getType() != expectedResultType) {
+    } else {
+      return Optional.of(result);
+    }
+  }
+
+  private Optional<EvaluationResult> typeCheck(
+      final EvaluationResult result,
+      final ResultType expectedResultType,
+      final ErrorType errorType,
+      final BpmnStepContext<?> context) {
+
+    if (result.getType() != expectedResultType) {
       context.raiseIncident(
-          ErrorType.EXTRACT_VALUE_ERROR,
+          errorType,
           String.format(
               "Expected result of the expression '%s' to be '%s', but was '%s'.",
-              evaluationResult.getExpression(), expectedResultType, evaluationResult.getType()));
+              result.getExpression(), expectedResultType, result.getType()));
       return Optional.empty();
-    }
 
-    return Optional.of(resultExtractor.apply(evaluationResult));
+    } else {
+      return Optional.of(result);
+    }
   }
 
   private EvaluationResult evaluateExpression(
