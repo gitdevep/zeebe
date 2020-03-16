@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
+	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -377,11 +378,10 @@ func (s *oauthCredsProviderTestSuite) TestOAuthCredentialsProviderUsesCachedCred
 	truncateDefaultOAuthYamlCacheFile()
 	cache, err := NewOAuthYamlCredentialsCache(DefaultOauthYamlCachePath)
 	s.NoError(err)
-	err = cache.Update(audience, &OAuthCredentials{
+	err = cache.Update(audience, &oauth2.Token{
 		AccessToken: accessToken,
-		ExpiresIn:   3600,
+		Expiry:      time.Now().Add(time.Second * 3600),
 		TokenType:   "Bearer",
-		Scope:       "grpc",
 	})
 	s.NoError(err)
 
@@ -543,6 +543,13 @@ func (s *oauthCredsProviderTestSuite) TestNoRequestIfOAuthFails() {
 
 func mockAuthorizationServer(t *testing.T, token *mutableToken) *httptest.Server {
 	return mockAuthorizationServerWithAudience(t, token, audience)
+}
+
+type oauthRequestPayload struct {
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+	Audience     string `json:"audience"`
+	GrantType    string `json:"grant_type"`
 }
 
 func mockAuthorizationServerWithAudience(t *testing.T, token *mutableToken, audience string) *httptest.Server {

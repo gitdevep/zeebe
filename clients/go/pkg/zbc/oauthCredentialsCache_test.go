@@ -15,11 +15,13 @@ package zbc
 
 import (
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/oauth2"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 type oauthCredsCacheTestSuite struct {
@@ -32,20 +34,18 @@ func TestOAuthCredsProviderCacheSuite(t *testing.T) {
 
 const wombatAudience = "wombat.cloud.camunda.io"
 
-var wombat = &OAuthCredentials{
+var wombat = &oauth2.Token{
 	AccessToken: "wombat",
-	ExpiresIn:   3600,
+	Expiry:      time.Now().Add(time.Second * 3600),
 	TokenType:   "Bearer",
-	Scope:       "grpc",
 }
 
 const aardvarkAudience = "aardvark.cloud.camunda.io"
 
-var aardvark = &OAuthCredentials{
+var aardvark = &oauth2.Token{
 	AccessToken: "aardvark",
-	ExpiresIn:   1800,
+	Expiry:      time.Now().Add(time.Second * 1800),
 	TokenType:   "Bearer",
-	Scope:       "grpc",
 }
 
 func init() {
@@ -73,12 +73,13 @@ func (s *oauthCredsCacheTestSuite) TestReadCacheGoldenFile() {
 
 func (s *oauthCredsCacheTestSuite) TestWriteCacheGoldenFile() {
 	capybaraAudience := "capybara.cloud.camunda.io"
-	capybara := &OAuthCredentials{
+
+	capybara := &oauth2.Token{
 		AccessToken: "capybara",
-		ExpiresIn:   900,
+		Expiry:      time.Now().Add(time.Second * 900),
 		TokenType:   "Bearer",
-		Scope:       "grpc",
 	}
+
 	cachePath := copyCredentialsCacheGoldenFileToTempFile()
 	cache, err := NewOAuthYamlCredentialsCache(cachePath)
 	s.NoError(err)
