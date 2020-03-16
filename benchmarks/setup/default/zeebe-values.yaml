@@ -47,7 +47,7 @@ pvcStorageClassName: ssd
 
 # ELASTIC
 elasticsearch:
-  enabled: false
+  enabled: true
   imageTag: 6.8.5
 
   replicas: 3
@@ -79,5 +79,5 @@ prometheus:
   enabled: false
 
   servicemonitor:
-    enabled: false
+    enabled: true
 
