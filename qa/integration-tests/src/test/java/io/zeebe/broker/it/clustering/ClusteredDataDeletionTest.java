@@ -37,7 +37,7 @@ import org.springframework.util.unit.DataSize;
 
 @RunWith(Parameterized.class)
 public final class ClusteredDataDeletionTest {
-  private static final Duration SNAPSHOT_PERIOD = Duration.ofSeconds(30);
+  private static final Duration SNAPSHOT_PERIOD = Duration.ofMinutes(1);
   private static final int MAX_SNAPSHOTS = 1;
   @Rule public final ClusteringRule clusteringRule;
 
