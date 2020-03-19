@@ -36,7 +36,7 @@ public final class RandomDuration {
 
     final var maxMinutes = maxDuration.minus(minDuration).toMinutes();
 
-    final ThreadLocalRandom threadLocalRandom = ThreadLocalRandom.current();
+    final var threadLocalRandom = ThreadLocalRandom.current();
     final var randomMinutes = threadLocalRandom.nextLong(0, maxMinutes);
 
     // base min duration
