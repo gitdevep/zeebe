@@ -79,7 +79,7 @@ public final class AsyncSnapshotDirector extends Actor {
   protected void onActorStarting() {
     actor.setSchedulingHints(SchedulingHints.ioBound());
     final var firstSnapshotTime =
-        RandomDuration.getRandomDuration(RandomDuration.ONE_MINUTE, snapshotRate);
+        RandomDuration.getRandomDurationMinuteBased(RandomDuration.ONE_MINUTE, snapshotRate);
     actor.runDelayed(firstSnapshotTime, scheduleSnapshotOnRate);
 
     lastWrittenEventPosition = null;
