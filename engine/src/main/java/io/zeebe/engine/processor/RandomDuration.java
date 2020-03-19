@@ -12,8 +12,6 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public final class RandomDuration {
 
-  public static final Duration ONE_MINUTE = Duration.ofMinutes(1);
-
   private RandomDuration() {}
 
   /**
@@ -29,7 +27,8 @@ public final class RandomDuration {
    * @param maxDuration the maximum duration, exclusive
    * @return a pseudo-random duration between the minimum and maximum duration
    */
-  public static Duration getRandomDurationMinuteBased(Duration minDuration, Duration maxDuration) {
+  public static Duration getRandomDurationMinuteBased(
+      final Duration minDuration, final Duration maxDuration) {
     if (minDuration.toMinutes() >= maxDuration.toMinutes()) {
       return minDuration;
     }
