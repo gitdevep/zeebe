@@ -83,9 +83,11 @@ public final class MultiInstanceIncidentTest {
         .hasElementId(elementInstance.getValue().getElementId())
         .hasErrorType(ErrorType.EXTRACT_VALUE_ERROR)
         .hasErrorMessage(
-            "Expected multi-instance input collection variable '"
+            "failed to evaluate expression '"
                 + INPUT_COLLECTION
-                + "' to be an ARRAY, but not found.");
+                + "': no variable found for name '"
+                + INPUT_COLLECTION
+                + "'");
   }
 
   @Test
@@ -95,7 +97,7 @@ public final class MultiInstanceIncidentTest {
         ENGINE
             .workflowInstance()
             .ofBpmnProcessId(PROCESS_ID)
-            .withVariable(INPUT_COLLECTION, "no-an-array")
+            .withVariable(INPUT_COLLECTION, "not-an-array-but-a-string")
             .create();
 
     // then
@@ -115,9 +117,9 @@ public final class MultiInstanceIncidentTest {
         .hasElementId(elementInstance.getValue().getElementId())
         .hasErrorType(ErrorType.EXTRACT_VALUE_ERROR)
         .hasErrorMessage(
-            "Expected multi-instance input collection variable '"
+            "Expected result of the expression '"
                 + INPUT_COLLECTION
-                + "' to be an ARRAY, but found 'STRING'.");
+                + "' to be 'ARRAY', but was 'STRING'.");
   }
 
   @Test

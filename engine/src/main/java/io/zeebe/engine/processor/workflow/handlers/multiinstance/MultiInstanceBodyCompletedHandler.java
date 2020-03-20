@@ -7,14 +7,16 @@
  */
 package io.zeebe.engine.processor.workflow.handlers.multiinstance;
 
+import static io.zeebe.util.buffer.BufferUtil.cloneBuffer;
+
 import io.zeebe.engine.processor.workflow.BpmnStepContext;
 import io.zeebe.engine.processor.workflow.BpmnStepHandler;
+import io.zeebe.engine.processor.workflow.ExpressionProcessor;
 import io.zeebe.engine.processor.workflow.deployment.model.BpmnStep;
 import io.zeebe.engine.processor.workflow.deployment.model.element.ExecutableMultiInstanceBody;
 import io.zeebe.msgpack.query.MsgPackQueryProcessor;
 import io.zeebe.msgpack.spec.MsgPackReader;
 import io.zeebe.msgpack.spec.MsgPackWriter;
-import java.util.List;
 import java.util.function.Function;
 import org.agrona.DirectBuffer;
 import org.agrona.ExpandableArrayBuffer;
@@ -32,10 +34,10 @@ public final class MultiInstanceBodyCompletedHandler extends AbstractMultiInstan
   private final DirectBuffer resultBuffer = new UnsafeBuffer(0, 0);
 
   public MultiInstanceBodyCompletedHandler(
-      final Function<BpmnStep, BpmnStepHandler> innerHandlerLookup) {
-    super(null, innerHandlerLookup);
-
-    multiInstanceBodyHandler = innerHandlerLookup.apply(BpmnStep.FLOWOUT_ELEMENT_COMPLETED);
+      final Function<BpmnStep, BpmnStepHandler> innerHandlerLookup,
+      final ExpressionProcessor expressionProcessor) {
+    super(null, innerHandlerLookup, expressionProcessor);
+    this.multiInstanceBodyHandler = innerHandlerLookup.apply(BpmnStep.FLOWOUT_ELEMENT_COMPLETED);
   }
 
   @Override
@@ -44,12 +46,14 @@ public final class MultiInstanceBodyCompletedHandler extends AbstractMultiInstan
 
     if (loopCharacteristics.isSequential()) {
 
-      final var array = readInputCollectionVariable(context).getSingleResult().getArray();
+      final var array =
+          readInputCollectionVariable(context).orElseThrow(IllegalStateException::new);
+
       final var loopCounter = context.getFlowScopeInstance().getMultiInstanceLoopCounter();
 
       if (loopCounter < array.size()) {
 
-        final var item = array.getElement(loopCounter);
+        final var item = array.get(loopCounter);
         createInnerInstance(context, context.getFlowScopeInstance().getKey(), item);
       }
     }
@@ -69,7 +73,7 @@ public final class MultiInstanceBodyCompletedHandler extends AbstractMultiInstan
     return true;
   }
 
-  private void updateOutputCollection(
+  protected void updateOutputCollection(
       final BpmnStepContext<ExecutableMultiInstanceBody> context, final DirectBuffer variableName) {
 
     final var variablesState = context.getElementInstanceState().getVariablesState();
@@ -77,27 +81,16 @@ public final class MultiInstanceBodyCompletedHandler extends AbstractMultiInstan
     final var workflowKey = context.getValue().getWorkflowKey();
     final var loopCounter = context.getElementInstance().getMultiInstanceLoopCounter();
 
-    final var elementVariable = readOutputElementVariable(context);
-    final var currentCollection = variablesState.getVariableLocal(bodyInstanceKey, variableName);
+    // the result needs to be cloned because readOutputElementVariable(Context) uses the same buffer
+    final var currentCollection =
+        cloneBuffer(variablesState.getVariableLocal(bodyInstanceKey, variableName));
 
-    final var updatedCollection = insertAt(currentCollection, loopCounter, elementVariable);
-
-    variablesState.setVariableLocal(bodyInstanceKey, workflowKey, variableName, updatedCollection);
-  }
-
-  private DirectBuffer readOutputElementVariable(
-      final BpmnStepContext<ExecutableMultiInstanceBody> context) {
-
-    final var query =
-        context.getElement().getLoopCharacteristics().getOutputElement().orElseThrow();
-
-    final var document =
-        context
-            .getElementInstanceState()
-            .getVariablesState()
-            .getVariablesAsDocument(context.getKey(), List.of(query.getVariableName()));
-
-    return queryProcessor.process(query, document).getSingleResult().getValue();
+    final DirectBuffer elementVariable = readOutputElementVariable(context);
+    if (elementVariable != null) {
+      final var updatedCollection = insertAt(currentCollection, loopCounter, elementVariable);
+      variablesState.setVariableLocal(
+          bodyInstanceKey, workflowKey, variableName, updatedCollection);
+    }
   }
 
   private DirectBuffer insertAt(

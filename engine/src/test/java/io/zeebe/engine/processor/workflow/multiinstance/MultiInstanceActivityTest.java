@@ -590,13 +590,6 @@ public final class MultiInstanceActivityTest {
 
     // then
     assertThat(
-            RecordingExporter.variableRecords(VariableIntent.CREATED)
-                .withName(OUTPUT_ELEMENT_VARIABLE)
-                .limit(INPUT_COLLECTION.size()))
-        .extracting(r -> r.getValue().getValue())
-        .containsOnly("null");
-
-    assertThat(
             RecordingExporter.variableRecords(VariableIntent.UPDATED)
                 .withName(OUTPUT_ELEMENT_VARIABLE)
                 .limit(INPUT_COLLECTION.size()))

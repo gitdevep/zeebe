@@ -43,7 +43,8 @@ public class ZeebeMultiInstanceLoopCharacteristicsValidationTest
         Bpmn.createExecutableProcess("process")
             .startEvent()
             .serviceTask(
-                "task", t -> t.zeebeTaskType("test").multiInstance(b -> b.zeebeInputCollection("")))
+                "task",
+                t -> t.zeebeTaskType("test").multiInstance(b -> b.zeebeInputCollection(null)))
             .done(),
         singletonList(
             expect(

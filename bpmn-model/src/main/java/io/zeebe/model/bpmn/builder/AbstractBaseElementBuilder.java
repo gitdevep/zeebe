@@ -306,6 +306,9 @@ public abstract class AbstractBaseElementBuilder<
   }
 
   protected String asZeebeExpression(final String expression) {
+    if (expression == null) {
+      return null;
+    }
     return String.format(ZEEBE_EXPRESSION_FORMAT, expression);
   }
 

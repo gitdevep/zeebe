@@ -16,6 +16,7 @@ import io.zeebe.el.ExpressionLanguage;
 import io.zeebe.el.ResultType;
 import io.zeebe.engine.state.instance.VariablesState;
 import io.zeebe.protocol.record.value.ErrorType;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import org.agrona.DirectBuffer;
@@ -65,6 +66,30 @@ public final class ExpressionProcessor {
         expression, context, ResultType.BOOLEAN, EvaluationResult::getBoolean);
   }
 
+  /**
+   * Evaluates the given expression and returns the result no matter the type.
+   *
+   * @param expression the expression to evaluate
+   * @param context the element context to load the variables from
+   * @return the evaluation result as buffer, or {@link Optional#empty()} if an incident is raised
+   */
+  public Optional<DirectBuffer> evaluateAnyExpression(
+      final Expression expression, final BpmnStepContext<?> context) {
+    return evaluateExpression(expression, context, null, EvaluationResult::toBuffer);
+  }
+
+  /**
+   * Evaluates the given expression and returns the result as a list.
+   *
+   * @param expression the expression to evaluate
+   * @param context the element context to load the variables from
+   * @return the evaluation result as a list, or {@link Optional#empty()} if an incident is raised
+   */
+  public Optional<List<DirectBuffer>> evaluateArrayExpression(
+      final Expression expression, final BpmnStepContext<?> context) {
+    return evaluateExpression(expression, context, ResultType.ARRAY, EvaluationResult::getList);
+  }
+
   private <T> Optional<T> evaluateExpression(
       final Expression expression,
       final BpmnStepContext<?> context,
@@ -78,7 +103,7 @@ public final class ExpressionProcessor {
       return Optional.empty();
     }
 
-    if (evaluationResult.getType() != expectedResultType) {
+    if (expectedResultType != null && evaluationResult.getType() != expectedResultType) {
       context.raiseIncident(
           ErrorType.EXTRACT_VALUE_ERROR,
           String.format(
