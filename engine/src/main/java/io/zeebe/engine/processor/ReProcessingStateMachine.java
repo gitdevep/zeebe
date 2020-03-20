@@ -79,6 +79,10 @@ public final class ReProcessingStateMachine {
       "Processor finished reprocessing at event position {}";
   private static final String LOG_STMT_FAILED_ON_PROCESSING =
       "Event {} failed on processing last time, will call #onError to update workflow instance blacklist.";
+
+  private static final String ERROR_INCONSISTENT_LOG =
+      "Inconsistent log detected! Last position was '%d' and current position is '%d'.";
+
   private static final Consumer<Long> NOOP_LONG_CONSUMER = (instanceKey) -> {};
   protected final RecordMetadata metadata = new RecordMetadata();
   private final ZeebeState zeebeState;
@@ -146,8 +150,18 @@ public final class ReProcessingStateMachine {
 
     if (logStreamReader.hasNext()) {
       lastSourceEventPosition = snapshotPosition;
+
+      long lastPosition = snapshotPosition;
       while (logStreamReader.hasNext()) {
         final LoggedEvent newEvent = logStreamReader.next();
+
+        final var currentPosition = newEvent.getPosition();
+        if (lastPosition >= currentPosition) {
+          // ERROR
+          throw new IllegalStateException(
+              String.format(ERROR_INCONSISTENT_LOG, lastPosition, currentPosition));
+        }
+        lastPosition = currentPosition;
 
         metadata.reset();
         newEvent.readMetadata(metadata);
